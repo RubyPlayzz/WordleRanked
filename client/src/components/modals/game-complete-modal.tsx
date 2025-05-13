@@ -2,7 +2,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatCountdown } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { RANK_COLORS } from "@/lib/constants";
+import { Progress } from "@/components/ui/progress";
+import { RANK_COLORS, RANK_THRESHOLDS } from "@/lib/constants";
+import { ChevronRight } from "lucide-react";
 
 interface GameCompleteModalProps {
   open: boolean;
@@ -52,9 +54,60 @@ export function GameCompleteModal({
     ? `You guessed the word in ${attempts} ${attempts === 1 ? 'attempt' : 'attempts'}.`
     : "You didn't guess the word this time.";
 
+  // Calculate progress to next rank
+  const calculateRankProgress = () => {
+    // Get current rank threshold
+    const currentThreshold = RANK_THRESHOLDS[rank as keyof typeof RANK_THRESHOLDS] || 0;
+    
+    // Find the next rank and its threshold
+    let nextRank = '';
+    let nextThreshold = 0;
+    
+    if (rank === 'Bronze') {
+      nextRank = 'Silver';
+      nextThreshold = RANK_THRESHOLDS['Silver'];
+    } else if (rank === 'Silver') {
+      nextRank = 'Gold';
+      nextThreshold = RANK_THRESHOLDS['Gold'];
+    } else if (rank === 'Gold') {
+      nextRank = 'Platinum';
+      nextThreshold = RANK_THRESHOLDS['Platinum'];
+    } else if (rank === 'Platinum') {
+      nextRank = 'Diamond';
+      nextThreshold = RANK_THRESHOLDS['Diamond'];
+    } else if (rank === 'Diamond') {
+      nextRank = 'Champion';
+      nextThreshold = RANK_THRESHOLDS['Champion'];
+    } else {
+      // Already at Champion rank
+      return {
+        progressPercent: 100,
+        nextRank: null,
+        pointsToNextRank: 0
+      };
+    }
+    
+    // Calculate percentage progress to next rank
+    const rangeSize = nextThreshold - currentThreshold;
+    
+    // Assume we're accessing the pointsEarned from the prop, which is the player's total score 
+    // after earning points in this game
+    const pointsAboveThreshold = pointsEarned;
+    const progressPercent = Math.min(100, Math.floor((pointsAboveThreshold / rangeSize) * 100));
+    const pointsToNextRank = nextThreshold - pointsAboveThreshold;
+    
+    return {
+      progressPercent,
+      nextRank,
+      pointsToNextRank
+    };
+  };
+  
+  const rankProgress = calculateRankProgress();
+
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <div className="text-center mb-4">
           <h2 className="text-2xl font-bold mb-2">{title}</h2>
           <p className="mb-4">{message}</p>
@@ -71,11 +124,34 @@ export function GameCompleteModal({
             </div>
           )}
           
-          <div className="flex justify-center items-center mb-4">
-            <div className={`rank-badge bg-gradient-to-r ${rankGradient} text-white shadow-lg`}>
-              <span className="mr-1">Your Rank:</span>
-              <span className="font-bold">{rank}</span>
+          {/* Rank Display */}
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-center items-center">
+              <div className={`rank-badge bg-gradient-to-r ${rankGradient} text-white shadow-lg`}>
+                <span className="mr-1">Your Rank:</span>
+                <span className="font-bold">{rank}</span>
+              </div>
             </div>
+            
+            {/* Rank Progress Bar */}
+            {rankProgress.nextRank && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{rank}</span>
+                  <div className="flex items-center">
+                    <span>{rankProgress.nextRank}</span>
+                    <ChevronRight className="h-3 w-3 inline ml-1" />
+                  </div>
+                </div>
+                <Progress 
+                  value={rankProgress.progressPercent} 
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {rankProgress.pointsToNextRank} points to {rankProgress.nextRank}
+                </p>
+              </div>
+            )}
           </div>
         </div>
         
@@ -86,14 +162,15 @@ export function GameCompleteModal({
           
           <div className="flex flex-col space-y-2">
             <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              variant="outline"
               onClick={onShareResults}
+              className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
             >
               Share Results
             </Button>
             <Button 
-              className="bg-green-600 hover:bg-green-700 text-white"
               onClick={onViewStats}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
             >
               View Statistics
             </Button>

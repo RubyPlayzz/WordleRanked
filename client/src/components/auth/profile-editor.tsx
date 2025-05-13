@@ -14,12 +14,12 @@ import { LOCAL_STORAGE_KEYS } from "@/lib/constants";
 
 // Avatar options
 const AVATAR_OPTIONS = [
-  { value: "avatar1", src: "/avatars/avatar1.png", alt: "Avatar 1" },
-  { value: "avatar2", src: "/avatars/avatar2.png", alt: "Avatar 2" },
-  { value: "avatar3", src: "/avatars/avatar3.png", alt: "Avatar 3" },
-  { value: "avatar4", src: "/avatars/avatar4.png", alt: "Avatar 4" },
-  { value: "avatar5", src: "/avatars/avatar5.png", alt: "Avatar 5" },
-  { value: "avatar6", src: "/avatars/avatar6.png", alt: "Avatar 6" },
+  { value: "avatar1", src: "/avatars/avatar1.svg", alt: "Avatar 1" },
+  { value: "avatar2", src: "/avatars/avatar2.svg", alt: "Avatar 2" },
+  { value: "avatar3", src: "/avatars/avatar3.svg", alt: "Avatar 3" },
+  { value: "avatar4", src: "/avatars/avatar4.svg", alt: "Avatar 4" },
+  { value: "avatar5", src: "/avatars/avatar5.svg", alt: "Avatar 5" },
+  { value: "avatar6", src: "/avatars/avatar6.svg", alt: "Avatar 6" },
 ];
 
 // Form validation schema

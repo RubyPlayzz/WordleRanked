@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Game board tile animations */
+@keyframes flip {
+  0% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.flip {
+  animation: flip 0.5s ease;
+}
+
+.bounce {
+  animation: bounce 0.5s ease;
+}
+
+.shake {
+  animation: shake 0.5s ease;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
