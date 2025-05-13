@@ -1,87 +1,119 @@
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { LOCAL_STORAGE_KEYS } from "@/lib/constants";
+
+// Avatar options
+const AVATAR_OPTIONS = [
+  { value: "avatar1", src: "/avatars/avatar1.png", alt: "Avatar 1" },
+  { value: "avatar2", src: "/avatars/avatar2.png", alt: "Avatar 2" },
+  { value: "avatar3", src: "/avatars/avatar3.png", alt: "Avatar 3" },
+  { value: "avatar4", src: "/avatars/avatar4.png", alt: "Avatar 4" },
+  { value: "avatar5", src: "/avatars/avatar5.png", alt: "Avatar 5" },
+  { value: "avatar6", src: "/avatars/avatar6.png", alt: "Avatar 6" },
+];
+
+// Form validation schema
+const formSchema = z.object({
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be less than 20 characters")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+  displayName: z.string().max(20, "Display name must be less than 20 characters").optional(),
+  profilePicture: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export function RegisterForm() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    confirmPassword: "",
-    displayName: "",
+
+  // Initialize form with default values
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      confirmPassword: "",
+      displayName: "",
+      profilePicture: AVATAR_OPTIONS[0].value,
+    },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate form
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.username.length < 3) {
-      toast({
-        title: "Username too short",
-        description: "Username must be at least 3 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Submit form
+  // Handle form submission
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsLoading(true);
       
-      const { username, password, displayName } = formData;
-      const response = await apiRequest('POST', '/api/users/register', {
-        username,
-        password,
-        displayName: displayName || username
-      });
-
+      // Remove confirmPassword before sending to API
+      const { confirmPassword, ...registerData } = values;
+      
+      // Call API to register
+      const response = await apiRequest("POST", "/api/auth/register", registerData);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
+        const data = await response.json();
+        throw new Error(data.message || "Registration failed");
       }
-
+      
+      const user = await response.json();
+      
+      // Save user data to localStorage
+      localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
+      
+      // Create initial game stats
+      try {
+        const initialStats = {
+          userId: user.id,
+          played: 0,
+          wins: 0,
+          currentStreak: 0,
+          maxStreak: 0,
+          score: 0,
+          eloRating: 1000,
+          distribution: "0,0,0,0,0,0",
+        };
+        
+        const statsResponse = await apiRequest("POST", "/api/game-stats", initialStats);
+        if (statsResponse.ok) {
+          const stats = await statsResponse.json();
+          localStorage.setItem(LOCAL_STORAGE_KEYS.GAME_STATS, JSON.stringify(stats));
+        }
+      } catch (error) {
+        console.error("Error creating game stats:", error);
+        // Non-critical error, continue with registration
+      }
+      
       toast({
-        title: "Registration successful!",
-        description: "You can now log in with your credentials.",
+        title: "Registration successful",
+        description: "Welcome to Wordle Ranked!",
       });
-
-      // Redirect to login page
-      setLocation("/login");
+      
+      // Redirect to game page
+      navigate("/");
     } catch (error) {
       console.error("Registration error:", error);
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "Please try again later",
+        description: error instanceof Error ? error.message : "Please check your information and try again",
         variant: "destructive",
       });
     } finally {
@@ -90,86 +122,149 @@ export function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-        <CardDescription>
-          Join Wordle Ranked and compete with players worldwide
-        </CardDescription>
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <h2 className="text-xl font-semibold">Create an Account</h2>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
               name="username"
-              type="text"
-              required
-              placeholder="Choose a unique username"
-              value={formData.username}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Choose a username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name (optional)</Label>
-            <Input
-              id="displayName"
+            
+            <FormField
+              control={form.control}
               name="displayName"
-              type="text"
-              placeholder="How you'll appear to other players"
-              value={formData.displayName}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Name (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="How you want to appear to others" 
+                      {...field} 
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
+            
+            <FormField
+              control={form.control}
               name="password"
-              type="password"
-              required
-              placeholder="Create a secure password"
-              value={formData.password}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Create a password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
+            
+            <FormField
+              control={form.control}
               name="confirmPassword"
-              type="password"
-              required
-              placeholder="Type your password again"
-              value={formData.confirmPassword}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Confirm your password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Creating Account..." : "Register"}
-          </Button>
-          <div className="text-center text-sm">
-            Already have an account?{" "}
-            <Button
-              variant="link"
-              className="p-0 font-medium"
-              onClick={() => setLocation("/login")}
+            
+            <FormField
+              control={form.control}
+              name="profilePicture"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Select an Avatar</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="grid grid-cols-3 gap-4"
+                    >
+                      {AVATAR_OPTIONS.map((avatar) => (
+                        <FormItem key={avatar.value} className="space-y-0">
+                          <FormControl>
+                            <div className="flex flex-col items-center space-y-2">
+                              <Label
+                                htmlFor={avatar.value}
+                                className={`w-16 h-16 rounded-full overflow-hidden cursor-pointer border-2 ${
+                                  field.value === avatar.value
+                                    ? "border-primary"
+                                    : "border-transparent"
+                                }`}
+                              >
+                                <img
+                                  src={avatar.src}
+                                  alt={avatar.alt}
+                                  className="w-full h-full object-cover"
+                                />
+                              </Label>
+                              <RadioGroupItem
+                                value={avatar.value}
+                                id={avatar.value}
+                                className="sr-only"
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
             >
-              Log in
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
-          </div>
-        </CardFooter>
-      </form>
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex justify-center border-t pt-4">
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Button 
+            variant="link" 
+            className="p-0 h-auto font-normal text-sm"
+            onClick={() => navigate("/login")}
+          >
+            Log in
+          </Button>
+        </p>
+      </CardFooter>
     </Card>
   );
 }
