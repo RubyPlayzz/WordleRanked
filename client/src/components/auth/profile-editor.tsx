@@ -1,13 +1,34 @@
 import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LOCAL_STORAGE_KEYS } from "@/lib/constants";
-import { DEFAULT_AVATARS } from "@/shared/constants";
+
+// Avatar options
+const AVATAR_OPTIONS = [
+  { value: "avatar1", src: "/avatars/avatar1.png", alt: "Avatar 1" },
+  { value: "avatar2", src: "/avatars/avatar2.png", alt: "Avatar 2" },
+  { value: "avatar3", src: "/avatars/avatar3.png", alt: "Avatar 3" },
+  { value: "avatar4", src: "/avatars/avatar4.png", alt: "Avatar 4" },
+  { value: "avatar5", src: "/avatars/avatar5.png", alt: "Avatar 5" },
+  { value: "avatar6", src: "/avatars/avatar6.png", alt: "Avatar 6" },
+];
+
+// Form validation schema
+const formSchema = z.object({
+  displayName: z.string().min(3, "Display name must be at least 3 characters").max(20, "Display name must be less than 20 characters").optional(),
+  profilePicture: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface ProfileEditorProps {
   userId: number;
@@ -18,208 +39,203 @@ interface ProfileEditorProps {
 export function ProfileEditor({ userId, onClose, onUpdate }: ProfileEditorProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [avatars, setAvatars] = useState<string[]>(DEFAULT_AVATARS);
-  const [userData, setUserData] = useState({
-    username: "",
-    displayName: "",
-    profilePicture: "",
+  const [userData, setUserData] = useState<any>(null);
+
+  // Initialize form with default values
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      displayName: "",
+      profilePicture: AVATAR_OPTIONS[0].value,
+    },
   });
 
   // Load user data
   useEffect(() => {
-    const loadUserData = async () => {
+    const fetchUserData = async () => {
       try {
-        setIsLoading(true);
-        const response = await apiRequest('GET', `/api/users/${userId}`);
+        // First try to get from localStorage
+        const savedUser = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setUserData(parsedUser);
+          
+          // Set form values
+          form.setValue("displayName", parsedUser.displayName || "");
+          form.setValue("profilePicture", parsedUser.profilePicture || AVATAR_OPTIONS[0].value);
+          return;
+        }
         
+        // If not in localStorage, fetch from API
+        const response = await apiRequest("GET", `/api/users/${userId}`);
         if (!response.ok) {
-          throw new Error("Failed to load user data");
+          throw new Error("Failed to fetch user data");
         }
         
         const data = await response.json();
-        setUserData({
-          username: data.username,
-          displayName: data.displayName || data.username,
-          profilePicture: data.profilePicture || avatars[0],
-        });
+        setUserData(data);
+        
+        // Set form values
+        form.setValue("displayName", data.displayName || "");
+        form.setValue("profilePicture", data.profilePicture || AVATAR_OPTIONS[0].value);
       } catch (error) {
         console.error("Error loading user data:", error);
         toast({
-          title: "Error",
-          description: "Failed to load user data. Please try again.",
+          title: "Error loading profile",
+          description: "Please try again later",
           variant: "destructive",
         });
-      } finally {
-        setIsLoading(false);
       }
     };
     
-    // Load available avatars (fallback to defaults if API fails)
-    const loadAvatars = async () => {
-      try {
-        const response = await apiRequest('GET', '/api/avatars');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.avatars && Array.isArray(data.avatars)) {
-            setAvatars(data.avatars);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading avatars:", error);
-      }
-    };
-    
-    loadUserData();
-    loadAvatars();
-  }, [userId, toast]);
+    fetchUserData();
+  }, [userId, form, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setUserData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!userData.username.trim()) {
-      toast({
-        title: "Username required",
-        description: "Please enter a username.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Handle form submission
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsLoading(true);
       
-      const response = await apiRequest('PATCH', `/api/users/${userId}`, {
-        username: userData.username,
-        displayName: userData.displayName,
-        profilePicture: userData.profilePicture,
+      // Call API to update profile
+      const response = await apiRequest("PATCH", `/api/users/${userId}`, {
+        displayName: values.displayName,
+        profilePicture: values.profilePicture,
       });
-
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update profile");
+        throw new Error("Failed to update profile");
       }
-
+      
       const updatedUser = await response.json();
       
-      // Update local storage
-      const storedUser = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.USER) || "{}");
-      const updatedStoredUser = {
-        ...storedUser,
-        username: updatedUser.username,
-        displayName: updatedUser.displayName,
-        profilePicture: updatedUser.profilePicture,
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(updatedStoredUser));
+      // Update localStorage
+      if (userData) {
+        const newUserData = {
+          ...userData,
+          displayName: values.displayName,
+          profilePicture: values.profilePicture,
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(newUserData));
+        onUpdate(newUserData);
+      }
       
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully!",
+        description: "Your profile has been successfully updated",
       });
       
-      // Call the onUpdate callback with the updated user data
-      onUpdate(updatedUser);
       onClose();
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
-        title: "Update failed",
-        description: error instanceof Error ? error.message : "Failed to update profile. Please try again.",
+        title: "Error updating profile",
+        description: "Please try again later",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // Show loading state if data is not yet loaded
+  if (!userData) {
+    return (
+      <div className="p-4 text-center">
+        <p>Loading profile data...</p>
+      </div>
+    );
+  }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Edit Profile</CardTitle>
-        <CardDescription>
-          Update your Wordle Ranked profile
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              name="username"
-              type="text"
-              required
-              placeholder="Your unique username"
-              value={userData.username}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input
-              id="displayName"
-              name="displayName"
-              type="text"
-              placeholder="How you'll appear to others"
-              value={userData.displayName}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-3">
-            <Label>Choose Avatar</Label>
-            <RadioGroup
-              value={userData.profilePicture}
-              onValueChange={(value) => setUserData(prev => ({ ...prev, profilePicture: value }))}
-              className="grid grid-cols-3 gap-4"
-            >
-              {avatars.map((avatar, index) => (
-                <div key={index} className="flex flex-col items-center space-y-2">
-                  <RadioGroupItem
-                    value={avatar}
-                    id={`avatar-${index}`}
-                    className="sr-only"
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogDescription>
+          Customize your display name and avatar.
+        </DialogDescription>
+      </DialogHeader>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <FormField
+            control={form.control}
+            name="displayName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Enter a display name" 
+                    {...field} 
+                    value={field.value || ""}
                   />
-                  <Label
-                    htmlFor={`avatar-${index}`}
-                    className={`w-16 h-16 rounded-full overflow-hidden cursor-pointer transition-all ${
-                      userData.profilePicture === avatar
-                        ? "ring-2 ring-primary ring-offset-2"
-                        : ""
-                    }`}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="profilePicture"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>Avatar</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="grid grid-cols-3 gap-4"
                   >
-                    <img
-                      src={avatar}
-                      alt={`Avatar option ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Saving..." : "Save Changes"}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+                    {AVATAR_OPTIONS.map((avatar) => (
+                      <FormItem key={avatar.value} className="space-y-0">
+                        <FormControl>
+                          <div className="flex flex-col items-center space-y-2">
+                            <Label
+                              htmlFor={avatar.value}
+                              className={`w-16 h-16 rounded-full overflow-hidden cursor-pointer border-2 ${
+                                field.value === avatar.value
+                                  ? "border-primary"
+                                  : "border-transparent"
+                              }`}
+                            >
+                              <img
+                                src={avatar.src}
+                                alt={avatar.alt}
+                                className="w-full h-full object-cover"
+                              />
+                            </Label>
+                            <RadioGroupItem
+                              value={avatar.value}
+                              id={avatar.value}
+                              className="sr-only"
+                            />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    </>
   );
 }

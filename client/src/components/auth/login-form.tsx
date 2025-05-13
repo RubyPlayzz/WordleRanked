@@ -1,89 +1,75 @@
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { LOCAL_STORAGE_KEYS } from "@/lib/constants";
 
-interface LoginResponse {
-  id: number;
-  username: string;
-  displayName: string;
-  profilePicture: string;
-  stats: {
-    id: number;
-    userId: number;
-    played: number;
-    wins: number;
-    currentStreak: number;
-    maxStreak: number;
-    score: number;
-    distribution: string;
-    rank: string;
-    eloRating: number;
-    position: number;
-  };
-}
+// Form validation schema
+const formSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
+
+  // Initialize form with default values
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.username || !formData.password) {
-      toast({
-        title: "Missing information",
-        description: "Please enter both username and password.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Handle form submission
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsLoading(true);
       
-      const response = await apiRequest('POST', '/api/users/login', formData);
-
+      // Call API to login
+      const response = await apiRequest("POST", "/api/auth/login", values);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+        const data = await response.json();
+        throw new Error(data.message || "Invalid username or password");
       }
-
-      const userData: LoginResponse = await response.json();
       
-      // Save user data to local storage
-      localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify({
-        id: userData.id,
-        username: userData.username,
-        displayName: userData.displayName,
-        profilePicture: userData.profilePicture,
-      }));
+      const user = await response.json();
       
-      // Save stats separately
-      localStorage.setItem(LOCAL_STORAGE_KEYS.GAME_STATS, JSON.stringify(userData.stats));
-
+      // Save user data to localStorage
+      localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
+      
+      // Load game stats if available
+      try {
+        const statsResponse = await apiRequest("GET", `/api/game-stats/${user.id}`);
+        if (statsResponse.ok) {
+          const stats = await statsResponse.json();
+          localStorage.setItem(LOCAL_STORAGE_KEYS.GAME_STATS, JSON.stringify(stats));
+        }
+      } catch (error) {
+        console.error("Error loading game stats:", error);
+        // Non-critical error, continue with login
+      }
+      
       toast({
-        title: "Login successful!",
-        description: `Welcome back, ${userData.displayName || userData.username}!`,
+        title: "Login successful",
+        description: "Welcome back!",
       });
-
+      
       // Redirect to game page
-      setLocation("/");
+      navigate("/");
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -97,63 +83,67 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>
-          Log in to continue your Wordle Ranked journey
-        </CardDescription>
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <h2 className="text-xl font-semibold">Log In</h2>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
               name="username"
-              type="text"
-              required
-              placeholder="Enter your username"
-              value={formData.username}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="password">Password</Label>
-            </div>
-            <Input
-              id="password"
+            
+            <FormField
+              control={form.control}
               name="password"
-              type="password"
-              required
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </Button>
-          <div className="text-center text-sm">
-            Don't have an account?{" "}
-            <Button
-              variant="link"
-              className="p-0 font-medium"
-              onClick={() => setLocation("/register")}
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
             >
-              Register
+              {isLoading ? "Logging in..." : "Log In"}
             </Button>
-          </div>
-        </CardFooter>
-      </form>
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex justify-center border-t pt-4">
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Button 
+            variant="link" 
+            className="p-0 h-auto font-normal text-sm"
+            onClick={() => navigate("/register")}
+          >
+            Sign up
+          </Button>
+        </p>
+      </CardFooter>
     </Card>
   );
 }

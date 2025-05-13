@@ -189,88 +189,110 @@ export function useGame({ userId }: UseGameProps = {}) {
   const handleEnter = useCallback(async () => {
     if (gameState.gameStatus !== 'playing') return;
     
-    setGameState(prev => {
-      // Check if current guess is complete
-      if (prev.currentGuess.length !== WORD_LENGTH) {
-        return {
-          ...prev,
-          message: 'Not enough letters',
-          showMessage: true
-        };
-      }
-      
-      // Check if word is valid
-      if (!isValidWord(prev.currentGuess)) {
-        // Trigger shake animation
-        document.querySelector(`.game-board > div:nth-child(${prev.currentRow + 1})`)?.classList.add('shake');
-        setTimeout(() => {
-          document.querySelector(`.game-board > div:nth-child(${prev.currentRow + 1})`)?.classList.remove('shake');
-        }, 500);
-        
-        return {
-          ...prev,
-          message: 'Not in word list',
-          showMessage: true
-        };
-      }
-      
-      // Word is valid, evaluate the guess
-      const evaluation = evaluateGuess(prev.currentGuess, prev.correctWord);
-      
-      // Update board state with evaluation results
-      const newBoardState = [...prev.boardState];
-      newBoardState[prev.currentRow] = evaluation;
-      
-      // Update keyboard state
-      const newKeyboardState = { ...prev.keyboardState };
-      evaluation.forEach(({ letter, state }) => {
-        // Only update if the new state is more informative
-        if (state === LETTER_STATES.CORRECT || 
-            (state === LETTER_STATES.PRESENT && newKeyboardState[letter] !== LETTER_STATES.CORRECT) ||
-            (state === LETTER_STATES.ABSENT && !newKeyboardState[letter])) {
-          newKeyboardState[letter] = state;
-        }
-      });
-      
-      // Check if guess is correct
-      const isCorrect = prev.currentGuess === prev.correctWord;
-      
-      // Check if out of attempts
-      const isLastAttempt = prev.currentRow === MAX_ATTEMPTS - 1;
-      
-      // Update game status
-      let newGameStatus: 'playing' | 'won' | 'lost' = 'playing';
-      let newMessage = '';
-      
-      if (isCorrect) {
-        newGameStatus = 'won';
-        const messageIndex = Math.min(prev.currentRow, WIN_MESSAGES.length - 1);
-        newMessage = WIN_MESSAGES[messageIndex];
-        
-        // Submit game result
-        submitGameResult(true, prev.currentRow + 1).catch(console.error);
-        setGameComplete(true);
-      } else if (isLastAttempt) {
-        newGameStatus = 'lost';
-        newMessage = LOSE_MESSAGE;
-        
-        // Submit game result
-        submitGameResult(false, null).catch(console.error);
-        setGameComplete(true);
-      }
-      
-      return {
+    // Check if current guess is complete
+    if (gameState.currentGuess.length !== WORD_LENGTH) {
+      setGameState(prev => ({
         ...prev,
-        boardState: newBoardState,
-        keyboardState: newKeyboardState,
-        currentRow: prev.currentRow + 1,
-        currentGuess: '',
-        gameStatus: newGameStatus,
-        message: newMessage,
-        showMessage: newMessage !== ''
-      };
+        message: 'Not enough letters',
+        showMessage: true
+      }));
+      return;
+    }
+    
+    // Perform basic client-side validation
+    if (!isValidWord(gameState.currentGuess)) {
+      // Trigger shake animation
+      document.querySelector(`.game-board > div:nth-child(${gameState.currentRow + 1})`)?.classList.add('shake');
+      setTimeout(() => {
+        document.querySelector(`.game-board > div:nth-child(${gameState.currentRow + 1})`)?.classList.remove('shake');
+      }, 500);
+      
+      setGameState(prev => ({
+        ...prev,
+        message: 'Word must contain only letters',
+        showMessage: true
+      }));
+      return;
+    }
+    
+    // Validate the word with the server (optional - we'll accept any 5-letter word)
+    try {
+      // We could add server validation here, but for now we'll accept any valid 5-letter word
+      // const validation = await validateWord(gameState.currentGuess);
+      // if (!validation.valid) {
+      //   document.querySelector(`.game-board > div:nth-child(${gameState.currentRow + 1})`)?.classList.add('shake');
+      //   setTimeout(() => {
+      //     document.querySelector(`.game-board > div:nth-child(${gameState.currentRow + 1})`)?.classList.remove('shake');
+      //   }, 500);
+      //   
+      //   setGameState(prev => ({
+      //     ...prev,
+      //     message: validation.message || 'Not in word list',
+      //     showMessage: true
+      //   }));
+      //   return;
+      // }
+    } catch (error) {
+      console.error("Error validating word:", error);
+      // Continue even if validation fails
+    }
+    
+    // Word is valid, evaluate the guess
+    const evaluation = evaluateGuess(gameState.currentGuess, gameState.correctWord);
+    
+    // Update board state with evaluation results
+    const newBoardState = [...gameState.boardState];
+    newBoardState[gameState.currentRow] = evaluation;
+    
+    // Update keyboard state
+    const newKeyboardState = { ...gameState.keyboardState };
+    evaluation.forEach(({ letter, state }) => {
+      // Only update if the new state is more informative
+      if (state === LETTER_STATES.CORRECT || 
+          (state === LETTER_STATES.PRESENT && newKeyboardState[letter] !== LETTER_STATES.CORRECT) ||
+          (state === LETTER_STATES.ABSENT && !newKeyboardState[letter])) {
+        newKeyboardState[letter] = state;
+      }
     });
-  }, [gameState.gameStatus, submitGameResult]);
+    
+    // Check if guess is correct
+    const isCorrect = gameState.currentGuess === gameState.correctWord;
+    
+    // Check if out of attempts
+    const isLastAttempt = gameState.currentRow === MAX_ATTEMPTS - 1;
+    
+    // Update game status
+    let newGameStatus: 'playing' | 'won' | 'lost' = 'playing';
+    let newMessage = '';
+    
+    if (isCorrect) {
+      newGameStatus = 'won';
+      const messageIndex = Math.min(gameState.currentRow, WIN_MESSAGES.length - 1);
+      newMessage = WIN_MESSAGES[messageIndex];
+      
+      // Submit game result
+      submitGameResult(true, gameState.currentRow + 1).catch(console.error);
+      setGameComplete(true);
+    } else if (isLastAttempt) {
+      newGameStatus = 'lost';
+      newMessage = LOSE_MESSAGE;
+      
+      // Submit game result
+      submitGameResult(false, MAX_ATTEMPTS).catch(console.error);
+      setGameComplete(true);
+    }
+    
+    setGameState(prev => ({
+      ...prev,
+      boardState: newBoardState,
+      keyboardState: newKeyboardState,
+      currentRow: prev.currentRow + 1,
+      currentGuess: '',
+      gameStatus: newGameStatus,
+      message: newMessage,
+      showMessage: newMessage !== ''
+    }));
+  }, [gameState, submitGameResult, setGameComplete]);
 
   // Handle keyboard input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

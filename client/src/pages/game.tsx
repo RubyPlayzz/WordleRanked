@@ -9,23 +9,39 @@ import { ResultToast } from "@/components/result-toast";
 import { useTheme } from "@/providers/theme-provider";
 import { useGame } from "@/hooks/use-game";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { formatCountdown, getTimeUntilNextWord } from "@/lib/utils";
 import { 
   HelpCircle, 
   BarChart, 
   Moon, 
   Sun,
-  Loader2
+  Loader2,
+  Trophy,
+  LogOut,
+  User
 } from "lucide-react";
 import { LOCAL_STORAGE_KEYS, type PlayerStats } from "@/lib/constants";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ProfileEditor } from "@/components/auth/profile-editor";
 
 export default function Game() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [showGameComplete, setShowGameComplete] = useState(false);
   const [timeUntilNextWord, setTimeUntilNextWord] = useState<string>("");
+  const [userData, setUserData] = useState<{
+    id: number;
+    username: string;
+    displayName?: string;
+    profilePicture?: string;
+  } | null>(null);
   const [stats, setStats] = useState<PlayerStats>({
     id: 0,
     userId: 0,
@@ -38,6 +54,18 @@ export default function Game() {
     rank: "Bronze"
   });
   
+  // Load user data
+  useEffect(() => {
+    const savedUser = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+    if (savedUser) {
+      try {
+        setUserData(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Error parsing saved user data", e);
+      }
+    }
+  }, []);
+  
   // Get the game hook
   const { 
     gameState, 
@@ -48,7 +76,7 @@ export default function Game() {
     handleKeyPress, 
     handleBackspace, 
     handleEnter
-  } = useGame();
+  } = useGame({ userId: userData?.id });
   
   // Update time until next word
   useEffect(() => {
@@ -145,6 +173,18 @@ export default function Game() {
     });
   };
 
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.GAME_STATS);
+    // Redirect to login page
+    navigate("/login");
+  };
+
+  const handleProfileUpdate = (updatedUser: any) => {
+    setUserData(updatedUser);
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -176,36 +216,64 @@ export default function Game() {
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
         <div className="flex items-center justify-between">
-          <button 
-            className="p-2" 
-            aria-label="Help"
-            onClick={() => setHelpModalOpen(true)}
-          >
-            <HelpCircle className="h-6 w-6" />
-          </button>
+          <div className="flex items-center">
+            <button 
+              className="p-2 mr-1" 
+              aria-label="Help"
+              onClick={() => setHelpModalOpen(true)}
+            >
+              <HelpCircle className="h-6 w-6" />
+            </button>
+            <button 
+              className="p-2" 
+              aria-label="Leaderboard"
+              onClick={() => navigate("/leaderboard")}
+            >
+              <Trophy className="h-6 w-6" />
+            </button>
+          </div>
           
           <h1 className="text-3xl font-bold text-center">Wordle Ranked</h1>
           
           <div className="flex items-center">
             <button 
-              className="p-2 mr-2" 
+              className="p-2 mr-1" 
+              aria-label="Profile"
+              onClick={() => setProfileEditorOpen(true)}
+            >
+              <User className="h-6 w-6" />
+            </button>
+            <button 
+              className="p-2 mr-1" 
               aria-label="Statistics"
               onClick={() => setStatsModalOpen(true)}
             >
               <BarChart className="h-6 w-6" />
             </button>
             <button 
-              className="p-2" 
+              className="p-2 mr-1" 
               aria-label="Toggle Dark Mode"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
             </button>
+            <button 
+              className="p-2" 
+              aria-label="Logout"
+              onClick={() => setLogoutDialogOpen(true)}
+            >
+              <LogOut className="h-6 w-6" />
+            </button>
           </div>
         </div>
         
-        {/* Rank Display */}
-        <RankDisplay rank={stats.rank} score={stats.score} />
+        {/* User info & Rank Display */}
+        <div className="flex justify-between items-center mt-1">
+          <div className="text-sm font-medium">
+            {userData?.displayName || userData?.username || "Player"}
+          </div>
+          <RankDisplay rank={stats.rank} score={stats.score} />
+        </div>
       </header>
       
       {/* Game Status Alert */}
@@ -262,6 +330,45 @@ export default function Game() {
           pointsEarned={pointsEarned}
           rank={stats.rank}
         />
+      )}
+      
+      {/* Logout confirmation dialog */}
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Out</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to log out? Your progress will be saved.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setLogoutDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+            >
+              Log Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Profile editor */}
+      {profileEditorOpen && userData && (
+        <Dialog open={profileEditorOpen} onOpenChange={setProfileEditorOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <ProfileEditor
+              userId={userData.id}
+              onClose={() => setProfileEditorOpen(false)}
+              onUpdate={handleProfileUpdate}
+            />
+          </DialogContent>
+        </Dialog>
       )}
       
       {/* Toast for notifications */}
