@@ -1,17 +1,23 @@
-import { type GameRecord, type GameStats, type GameWord, type InsertGameRecord, type InsertGameStats, type InsertGameWord, type InsertUser, type UpdateGameStats, type User, calculateRankTier } from "@shared/schema";
+import { db } from "./db";
+import { calculateEloRatingChange, calculateRankTier, type GameRecord, type GameStats, type GameWord, type InsertGameRecord, type InsertGameStats, type InsertGameWord, type InsertLeaderboardEntry, type InsertUser, type LeaderboardEntry, type UpdateGameStats, type UpdateUser, type User, DEFAULT_AVATARS } from "@shared/schema";
+import { gameRecords, gameStats, gameWords, leaderboardEntries, users } from "@shared/schema";
+import { eq, sql, desc, and, isNull } from "drizzle-orm";
 
 // Storage interface for the application
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getAllUsers(limit?: number): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, data: UpdateUser): Promise<User>;
 
   // Game words methods
   getAllWords(): Promise<string[]>;
   getDailyWord(): Promise<string>;
   addWord(word: InsertGameWord): Promise<GameWord>;
   markWordAsUsed(word: string, date: Date): Promise<void>;
+  isValidWord(word: string): Promise<boolean>;
 
   // Game stats methods
   getGameStats(userId: number): Promise<GameStats | undefined>;
@@ -22,97 +28,55 @@ export interface IStorage {
   createGameRecord(record: InsertGameRecord): Promise<GameRecord>;
   getGameRecordForToday(userId: number): Promise<GameRecord | undefined>;
   getGameRecordsForUser(userId: number): Promise<GameRecord[]>;
+
+  // Leaderboard methods
+  getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+  getLeaderboardPosition(userId: number): Promise<number>;
+  updateLeaderboardEntry(userId: number, stats: GameStats): Promise<LeaderboardEntry>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private gameWords: Map<number, GameWord>;
-  private gameStats: Map<number, GameStats>;
-  private gameRecords: Map<number, GameRecord>;
-  private userIdCounter: number;
-  private wordIdCounter: number;
-  private gameStatsIdCounter: number;
-  private gameRecordIdCounter: number;
-  private wordList: string[];
-
-  constructor() {
-    this.users = new Map();
-    this.gameWords = new Map();
-    this.gameStats = new Map();
-    this.gameRecords = new Map();
-    this.userIdCounter = 1;
-    this.wordIdCounter = 1;
-    this.gameStatsIdCounter = 1;
-    this.gameRecordIdCounter = 1;
-    this.wordList = [
-      "about", "above", "abuse", "actor", "acute", "admit", "adopt", "adult", "after", "again",
-      "apple", "award", "beach", "begin", "black", "blame", "blind", "block", "blood", "board",
-      "brain", "bread", "break", "brown", "build", "burst", "cabin", "cable", "carry", "catch",
-      "cause", "chair", "cheap", "check", "chest", "chief", "child", "civil", "claim", "class",
-      "clean", "clear", "climb", "clock", "close", "cloud", "coast", "comic", "count", "court",
-      "cover", "crack", "craft", "crash", "cream", "crime", "cross", "crowd", "crown", "cycle",
-      "daily", "dance", "death", "debut", "delay", "depth", "doubt", "draft", "drama", "dream",
-      "dress", "drink", "drive", "earth", "eight", "elite", "empty", "enemy", "enjoy", "enter",
-      "entry", "equal", "error", "event", "exact", "exist", "extra", "faith", "false", "fault",
-      "field", "fight", "final", "first", "fixed", "flash", "fleet", "floor", "focus", "force",
-      "frame", "frank", "front", "fruit", "fully", "funny", "ghost", "giant", "glass", "globe",
-      "glory", "goals", "grand", "grant", "grass", "great", "green", "group", "guide", "happy",
-      "heart", "heavy", "hello", "horse", "hotel", "house", "human", "ideal", "image", "index",
-      "inner", "input", "issue", "japan", "joint", "judge", "juice", "knife", "known", "label",
-      "large", "laser", "later", "laugh", "layer", "learn", "leave", "legal", "level", "light",
-      "limit", "lions", "local", "logic", "loose", "lucky", "lunch", "magic", "major", "maker",
-      "march", "match", "maybe", "mayor", "media", "merit", "metal", "might", "minor", "mixed",
-      "model", "money", "month", "moral", "motor", "mount", "mouse", "mouth", "movie", "music",
-      "night", "noise", "north", "novel", "nurse", "ocean", "offer", "often", "order", "other",
-      "outer", "owner", "panel", "paper", "party", "peace", "phase", "phone", "photo", "piece",
-      "pilot", "pitch", "place", "plain", "plane", "plant", "plate", "point", "pound", "power",
-      "press", "price", "pride", "prime", "print", "prior", "prize", "proof", "proud", "prove",
-      "queen", "quick", "quiet", "quite", "radio", "raise", "range", "rapid", "ratio", "reach",
-      "ready", "refer", "right", "river", "rough", "round", "route", "royal", "rural", "scale",
-      "scene", "scope", "score", "sense", "serve", "shall", "shape", "share", "sharp", "sheep",
-      "sheet", "shelf", "shell", "shift", "shirt", "shock", "shoot", "short", "shown", "sight",
-      "since", "skill", "sleep", "slide", "small", "smart", "smile", "smith", "smoke", "solid",
-      "solve", "sorry", "sound", "south", "space", "spare", "speak", "speed", "spend", "spirit",
-      "sport", "squad", "staff", "stage", "stand", "start", "state", "steam", "steel", "stick",
-      "still", "stock", "stone", "store", "storm", "story", "strip", "study", "stuff", "style",
-      "sugar", "suite", "super", "sweet", "table", "taken", "taste", "taxes", "teach", "teeth",
-      "terry", "texas", "thank", "theft", "their", "theme", "there", "thick", "thing", "think",
-      "third", "those", "three", "throw", "tight", "times", "tired", "title", "today", "topic",
-      "total", "touch", "tough", "tower", "track", "trade", "train", "treat", "trend", "trial",
-      "tried", "tries", "truck", "truly", "trust", "truth", "twice", "under", "undue", "union",
-      "unity", "until", "upper", "upset", "urban", "usage", "usual", "valid", "value", "video",
-      "virus", "visit", "vital", "voice", "waste", "watch", "water", "wheel", "where", "which",
-      "while", "white", "whole", "whose", "woman", "world", "worry", "worse", "worst", "worth",
-      "would", "wound", "write", "wrong", "years", "yield", "young", "youth"
-    ];
-
-    // Initialize some words
-    this.wordList.forEach(word => {
-      this.addWord({ word }).catch(console.error);
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getAllUsers(limit: number = 100): Promise<User[]> {
+    return await db.select().from(users).limit(limit);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    // Assign a random default avatar if not specified
+    const userWithDefaults = {
+      ...insertUser,
+      profilePicture: insertUser.profilePicture || DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)],
+      displayName: insertUser.displayName || insertUser.username,
+    };
+
+    const [user] = await db.insert(users).values(userWithDefaults).returning();
     return user;
+  }
+
+  async updateUser(id: number, updateData: UpdateUser): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    
+    return updatedUser;
   }
 
   // Game words methods
   async getAllWords(): Promise<string[]> {
-    return Array.from(this.gameWords.values()).map(word => word.word);
+    const result = await db.select({ word: gameWords.word }).from(gameWords);
+    return result.map(row => row.word);
   }
 
   async getDailyWord(): Promise<string> {
@@ -120,114 +84,141 @@ export class MemStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Find a word that was marked for today, or select a new one
-    const existingWord = Array.from(this.gameWords.values()).find(
-      word => word.dateUsed && word.dateUsed.getTime() === today.getTime()
-    );
-
+    // First check if we have a word already selected for today
+    const [existingWord] = await db
+      .select()
+      .from(gameWords)
+      .where(
+        and(
+          sql`DATE(${gameWords.dateUsed}) = DATE(${today})`,
+          eq(gameWords.isUsed, true)
+        )
+      );
+    
     if (existingWord) {
       return existingWord.word;
     }
     
-    // If no word is selected for today, choose one randomly
-    const unusedWords = Array.from(this.gameWords.values()).filter(word => !word.isUsed);
-    if (unusedWords.length === 0) {
-      // If all words have been used, reset a random subset
-      const resetCount = Math.min(this.gameWords.size, 50);
-      const allWords = Array.from(this.gameWords.values());
-      for (let i = 0; i < resetCount; i++) {
-        const randomIndex = Math.floor(Math.random() * allWords.length);
-        const wordToReset = allWords[randomIndex];
-        wordToReset.isUsed = false;
-        wordToReset.dateUsed = undefined;
-        this.gameWords.set(wordToReset.id, wordToReset);
-        allWords.splice(randomIndex, 1);
+    // If no word is selected for today, choose one randomly from unused words
+    const [randomWord] = await db
+      .select()
+      .from(gameWords)
+      .where(eq(gameWords.isUsed, false))
+      .limit(1)
+      .orderBy(sql`RANDOM()`);
+    
+    // If all words have been used, reset some words
+    if (!randomWord) {
+      // Reset 50 random words that have been used
+      await db
+        .update(gameWords)
+        .set({ isUsed: false, dateUsed: null })
+        .where(eq(gameWords.isUsed, true))
+        .limit(50);
+      
+      // Now try again to get a random word
+      const [resetWord] = await db
+        .select()
+        .from(gameWords)
+        .where(eq(gameWords.isUsed, false))
+        .limit(1)
+        .orderBy(sql`RANDOM()`);
+      
+      if (resetWord) {
+        await this.markWordAsUsed(resetWord.word, today);
+        return resetWord.word;
       }
+    } else {
+      await this.markWordAsUsed(randomWord.word, today);
+      return randomWord.word;
     }
     
-    // Select a random unused word
-    const availableWords = Array.from(this.gameWords.values()).filter(word => !word.isUsed);
-    const randomIndex = Math.floor(Math.random() * availableWords.length);
-    const selectedWord = availableWords[randomIndex];
+    // Fallback in case something went wrong
+    // Create a default word if needed
+    const [firstWord] = await db.select().from(gameWords).limit(1);
     
-    // Mark it as used for today
-    await this.markWordAsUsed(selectedWord.word, today);
+    if (firstWord) {
+      await this.markWordAsUsed(firstWord.word, today);
+      return firstWord.word;
+    }
     
-    return selectedWord.word;
+    // If we have no words at all, add one and use it
+    const defaultWord = "world";
+    const addedWord = await this.addWord({ word: defaultWord });
+    await this.markWordAsUsed(addedWord.word, today);
+    return addedWord.word;
   }
 
   async addWord(insertWord: InsertGameWord): Promise<GameWord> {
-    const id = this.wordIdCounter++;
-    const word: GameWord = { 
-      ...insertWord, 
-      id, 
-      isUsed: false,
-      dateUsed: undefined 
-    };
-    this.gameWords.set(id, word);
+    const [word] = await db
+      .insert(gameWords)
+      .values({
+        ...insertWord,
+        isUsed: false
+      })
+      .returning();
+    
     return word;
   }
 
   async markWordAsUsed(wordToMark: string, date: Date): Promise<void> {
-    const wordEntry = Array.from(this.gameWords.values()).find(
-      entry => entry.word.toLowerCase() === wordToMark.toLowerCase()
-    );
+    await db
+      .update(gameWords)
+      .set({ isUsed: true, dateUsed: date })
+      .where(eq(gameWords.word, wordToMark));
+  }
+
+  async isValidWord(word: string): Promise<boolean> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(gameWords)
+      .where(eq(gameWords.word, word.toLowerCase()));
     
-    if (wordEntry) {
-      wordEntry.isUsed = true;
-      wordEntry.dateUsed = date;
-      this.gameWords.set(wordEntry.id, wordEntry);
-    }
+    return result.count > 0;
   }
 
   // Game stats methods
   async getGameStats(userId: number): Promise<GameStats | undefined> {
-    return Array.from(this.gameStats.values()).find(
-      stats => stats.userId === userId
-    );
-  }
-
-  async createGameStats(insertStats: InsertGameStats): Promise<GameStats> {
-    const id = this.gameStatsIdCounter++;
-    const stats: GameStats = {
-      id,
-      userId: insertStats.userId,
-      played: 0,
-      wins: 0,
-      currentStreak: 0,
-      maxStreak: 0,
-      score: 0,
-      distribution: "0,0,0,0,0,0", // Comma-separated counts for 1-6 attempts
-      lastPlayed: undefined
-    };
-    this.gameStats.set(id, stats);
+    const [stats] = await db
+      .select()
+      .from(gameStats)
+      .where(eq(gameStats.userId, userId));
+    
     return stats;
   }
 
-  async updateGameStats(userId: number, updateStats: UpdateGameStats): Promise<GameStats> {
-    const existingStats = await this.getGameStats(userId);
-    if (!existingStats) {
-      throw new Error(`No stats found for user ID ${userId}`);
-    }
+  async createGameStats(insertStats: InsertGameStats): Promise<GameStats> {
+    const [stats] = await db
+      .insert(gameStats)
+      .values(insertStats)
+      .returning();
+    
+    // Also create a leaderboard entry for this user
+    await this.createLeaderboardEntry({ userId: insertStats.userId });
+    
+    return stats;
+  }
 
-    const updatedStats: GameStats = {
-      ...existingStats,
-      ...updateStats
-    };
-
-    this.gameStats.set(existingStats.id, updatedStats);
-    return updatedStats;
+  async updateGameStats(userId: number, updateData: UpdateGameStats): Promise<GameStats> {
+    const [stats] = await db
+      .update(gameStats)
+      .set(updateData)
+      .where(eq(gameStats.userId, userId))
+      .returning();
+    
+    // Also update the leaderboard entry
+    await this.updateLeaderboardEntry(userId, stats);
+    
+    return stats;
   }
 
   // Game records methods
   async createGameRecord(insertRecord: InsertGameRecord): Promise<GameRecord> {
-    const id = this.gameRecordIdCounter++;
-    const record: GameRecord = {
-      ...insertRecord,
-      id,
-      date: new Date()
-    };
-    this.gameRecords.set(id, record);
+    const [record] = await db
+      .insert(gameRecords)
+      .values(insertRecord)
+      .returning();
+    
     return record;
   }
 
@@ -235,18 +226,119 @@ export class MemStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    return Array.from(this.gameRecords.values()).find(record => {
-      const recordDate = new Date(record.date);
-      recordDate.setHours(0, 0, 0, 0);
-      return record.userId === userId && recordDate.getTime() === today.getTime();
-    });
+    const [record] = await db
+      .select()
+      .from(gameRecords)
+      .where(
+        and(
+          eq(gameRecords.userId, userId),
+          sql`DATE(${gameRecords.date}) = DATE(${today})`
+        )
+      );
+    
+    return record;
   }
 
   async getGameRecordsForUser(userId: number): Promise<GameRecord[]> {
-    return Array.from(this.gameRecords.values())
-      .filter(record => record.userId === userId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return await db
+      .select()
+      .from(gameRecords)
+      .where(eq(gameRecords.userId, userId))
+      .orderBy(desc(gameRecords.date));
+  }
+
+  // Leaderboard methods
+  private async createLeaderboardEntry(entry: InsertLeaderboardEntry): Promise<LeaderboardEntry> {
+    const [result] = await db
+      .insert(leaderboardEntries)
+      .values(entry)
+      .returning();
+    
+    return result;
+  }
+
+  async getLeaderboard(limit: number = 100): Promise<LeaderboardEntry[]> {
+    const leaderboard = await db
+      .select({
+        id: leaderboardEntries.id,
+        userId: leaderboardEntries.userId,
+        score: leaderboardEntries.score,
+        eloRating: leaderboardEntries.eloRating,
+        rank: leaderboardEntries.rank,
+        gamesPlayed: leaderboardEntries.gamesPlayed,
+        winRate: leaderboardEntries.winRate,
+        updatedAt: leaderboardEntries.updatedAt,
+        username: users.username,
+        displayName: users.displayName,
+        profilePicture: users.profilePicture,
+      })
+      .from(leaderboardEntries)
+      .innerJoin(users, eq(leaderboardEntries.userId, users.id))
+      .orderBy(desc(leaderboardEntries.eloRating))
+      .limit(limit);
+    
+    return leaderboard;
+  }
+
+  async getLeaderboardPosition(userId: number): Promise<number> {
+    // Get the user's ELO rating
+    const [userEntry] = await db
+      .select({ eloRating: leaderboardEntries.eloRating })
+      .from(leaderboardEntries)
+      .where(eq(leaderboardEntries.userId, userId));
+    
+    if (!userEntry) return 0;
+    
+    // Count how many players have a higher ELO rating
+    const [result] = await db
+      .select({ position: sql<number>`count(*) + 1` })
+      .from(leaderboardEntries)
+      .where(sql`${leaderboardEntries.eloRating} > ${userEntry.eloRating}`);
+    
+    return result.position;
+  }
+
+  async updateLeaderboardEntry(userId: number, stats: GameStats): Promise<LeaderboardEntry> {
+    // Calculate rank based on score
+    const rank = calculateRankTier(stats.score);
+    
+    // Calculate win rate
+    const winRate = stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0;
+    
+    // Check if entry exists
+    const [existingEntry] = await db
+      .select()
+      .from(leaderboardEntries)
+      .where(eq(leaderboardEntries.userId, userId));
+    
+    if (existingEntry) {
+      // Update existing entry
+      const [updatedEntry] = await db
+        .update(leaderboardEntries)
+        .set({
+          score: stats.score,
+          eloRating: stats.eloRating,
+          rank,
+          gamesPlayed: stats.played,
+          winRate,
+          updatedAt: new Date()
+        })
+        .where(eq(leaderboardEntries.userId, userId))
+        .returning();
+      
+      return updatedEntry;
+    } else {
+      // Create new entry
+      return await this.createLeaderboardEntry({
+        userId,
+        score: stats.score,
+        eloRating: stats.eloRating,
+        rank,
+        gamesPlayed: stats.played,
+        winRate
+      });
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

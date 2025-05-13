@@ -2,7 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { calculateRankTier, insertGameRecordSchema, insertUserSchema } from "@shared/schema";
+import { calculateRankTier, insertGameRecordSchema, insertUserSchema, updateUserSchema } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import { DEFAULT_AVATARS } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
@@ -18,6 +20,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validate a word (check if it's a valid 5-letter word)
+  app.get("/api/validate-word/:word", async (req, res) => {
+    try {
+      const word = req.params.word.toLowerCase();
+      
+      // Check if the word is 5 letters
+      if (word.length !== 5) {
+        return res.json({ valid: false, message: "Word must be 5 letters" });
+      }
+      
+      // Check if the word contains only letters
+      if (!/^[a-z]+$/.test(word)) {
+        return res.json({ valid: false, message: "Word must contain only letters" });
+      }
+
+      // For now we'll allow any 5-letter word composed of letters
+      // You could add a dictionary API integration here in the future
+      return res.json({ valid: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to validate word" });
+    }
+  });
+
   // Register a new user
   app.post("/api/users/register", async (req, res) => {
     try {
@@ -28,12 +53,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "Username already taken" });
       }
 
-      const user = await storage.createUser(userData);
+      // Hash the password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(userData.password, salt);
+
+      // Create the user with hashed password
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
       
       // Create initial game stats for the user
       await storage.createGameStats({ userId: user.id });
       
-      res.status(201).json({ id: user.id, username: user.username });
+      res.status(201).json({ 
+        id: user.id, 
+        username: user.username,
+        displayName: user.displayName,
+        profilePicture: user.profilePicture
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
@@ -45,10 +83,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login a user
   app.post("/api/users/login", async (req, res) => {
     try {
-      const { username, password } = insertUserSchema.parse(req.body);
+      const { username, password } = z.object({
+        username: z.string(),
+        password: z.string()
+      }).parse(req.body);
+      
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Compare password with hashed password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
@@ -60,14 +108,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameStats = await storage.createGameStats({ userId: user.id });
       }
 
-      const rank = calculateRankTier(gameStats.score);
+      // Get user's leaderboard position
+      const leaderboardPosition = await storage.getLeaderboardPosition(user.id);
       
       res.json({ 
         id: user.id, 
         username: user.username,
+        displayName: user.displayName || user.username,
+        profilePicture: user.profilePicture,
         stats: {
           ...gameStats,
-          rank
+          rank: gameStats.rank || calculateRankTier(gameStats.score),
+          position: leaderboardPosition
         }
       });
     } catch (error) {
@@ -76,6 +128,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(500).json({ message: "Failed to login" });
     }
+  });
+
+  // Get user profile
+  app.get("/api/users/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user's stats
+      const gameStats = await storage.getGameStats(userId);
+      
+      // Get user's leaderboard position
+      const leaderboardPosition = await storage.getLeaderboardPosition(userId);
+      
+      res.json({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        profilePicture: user.profilePicture,
+        createdAt: user.createdAt,
+        stats: gameStats ? {
+          ...gameStats,
+          rank: gameStats.rank || calculateRankTier(gameStats.score),
+          position: leaderboardPosition
+        } : null
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user profile" });
+    }
+  });
+
+  // Update user profile
+  app.patch("/api/users/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updateData = updateUserSchema.parse(req.body);
+      
+      // If username is being updated, check if it's already taken
+      if (updateData.username) {
+        const existingUser = await storage.getUserByUsername(updateData.username);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(409).json({ message: "Username already taken" });
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        displayName: updatedUser.displayName || updatedUser.username,
+        profilePicture: updatedUser.profilePicture
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  // Get available avatar options
+  app.get("/api/avatars", (req, res) => {
+    res.json({ avatars: DEFAULT_AVATARS });
   });
 
   // Get user's game stats
@@ -99,11 +235,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameStats = await storage.createGameStats({ userId });
       }
       
-      const rank = calculateRankTier(gameStats.score);
+      // Get user's leaderboard position
+      const position = await storage.getLeaderboardPosition(userId);
       
       res.json({
         ...gameStats,
-        rank
+        rank: gameStats.rank || calculateRankTier(gameStats.score),
+        position
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get game stats" });
@@ -199,31 +337,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const streakBonus = Math.min(50, gameStats.currentStreak * 5);
         pointsToAdd += streakBonus;
         
+        // Calculate ELO rating change
+        const eloChange = gameData.attempts
+          ? calculateEloRatingChange(gameStats.eloRating || 1000, 'win', gameData.attempts)
+          : 0;
+        
         updatedStats.score = gameStats.score + pointsToAdd;
+        updatedStats.eloRating = (gameStats.eloRating || 1000) + eloChange;
+        updatedStats.rank = calculateRankTier(updatedStats.score);
       } else {
         // Reset streak for losses
         updatedStats.currentStreak = 0;
+        
+        // Calculate ELO rating change for a loss
+        const eloChange = calculateEloRatingChange(gameStats.eloRating || 1000, 'loss');
+        updatedStats.eloRating = (gameStats.eloRating || 1000) + eloChange;
       }
       
       // Update the game stats
       const finalStats = await storage.updateGameStats(userId, updatedStats);
       
-      // Calculate rank
-      const rank = calculateRankTier(finalStats.score);
+      // Get updated leaderboard position
+      const position = await storage.getLeaderboardPosition(userId);
       
       res.status(201).json({
         record,
         stats: {
           ...finalStats,
-          rank
+          position
         },
-        pointsEarned: gameData.success ? (finalStats.score - gameStats.score) : 0
+        pointsEarned: gameData.success ? (finalStats.score - gameStats.score) : 0,
+        eloChange: (finalStats.eloRating || 1000) - (gameStats.eloRating || 1000)
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid game data", errors: error.errors });
       }
+      console.error("Error submitting game:", error);
       res.status(500).json({ message: "Failed to submit game result" });
+    }
+  });
+
+  // Get leaderboard
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const leaderboard = await storage.getLeaderboard(limit);
+      
+      res.json({ leaderboard });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get leaderboard" });
     }
   });
 

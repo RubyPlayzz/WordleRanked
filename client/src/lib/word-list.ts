@@ -1,157 +1,33 @@
-// This list of valid 5-letter words is used for validation
-export const validWords = [
-  "about", "above", "abuse", "actor", "acute", "admit", "adopt", "adult", "after", "again",
-  "agent", "agree", "ahead", "alarm", "album", "alert", "alike", "alive", "allow", "alone",
-  "along", "alter", "among", "anger", "angle", "angry", "anime", "ankle", "apart", "apple",
-  "apply", "arena", "argue", "arise", "armor", "array", "arrow", "asset", "avoid", "award",
-  "aware", "awful", "bacon", "badge", "badly", "basic", "basis", "beach", "beard", "beast",
-  "begin", "being", "below", "bench", "berry", "birth", "black", "blade", "blame", "blank",
-  "blast", "bleed", "blend", "bless", "blind", "block", "blood", "bloom", "blues", "bluff",
-  "board", "boast", "bonus", "boost", "booth", "born", "bound", "bowel", "brain", "brake",
-  "brand", "brave", "bread", "break", "breed", "brick", "bride", "brief", "bring", "brink",
-  "brisk", "broad", "broke", "brown", "brush", "build", "built", "bulge", "bunch", "burst",
-  "cabin", "cable", "camel", "canal", "candy", "canon", "cargo", "carry", "carve", "catch",
-  "cause", "cease", "chain", "chair", "chalk", "charm", "chart", "chase", "cheap", "check",
-  "cheek", "cheer", "chest", "chief", "child", "chill", "china", "chocolate", "chord", "chuck",
-  "churn", "cigar", "cinch", "crate", "cycle", "dance", "decay", "depth", "dream", "drink",
-  "drive", "earth", "eight", "elect", "elven", "empty", "enemy", "enjoy", "enter", "entry",
-  "equal", "erect", "erupt", "essay", "ethic", "event", "every", "evoke", "exact", "exist",
-  "extra", "exult", "faith", "false", "fancy", "fault", "favor", "feast", "fetch", "fever",
-  "fiber", "field", "fiery", "fifth", "fight", "final", "first", "fling", "flint", "float",
-  "flock", "floor", "flora", "flout", "fluid", "flush", "flute", "focus", "folly", "foray",
-  "force", "forge", "forth", "forty", "forum", "found", "frame", "frank", "fraud", "freak",
-  "fresh", "front", "frost", "fruit", "fully", "funky", "funny", "ghost", "giant", "glass",
-  "gleam", "glean", "globe", "glory", "gloss", "glove", "gnarl", "goals", "goose", "grace",
-  "grade", "grain", "grand", "grant", "grape", "graph", "grasp", "grass", "grave", "great",
-  "green", "greet", "grief", "grill", "grind", "gripe", "groan", "groom", "gross", "group",
-  "grout", "growl", "grown", "gruel", "guard", "guess", "guest", "guide", "guild", "guilt",
-  "guise", "gulch", "gully", "gumbo", "gusto", "gusty", "gypsy", "habit", "hairy", "harem",
-  "happy", "haste", "hasty", "hatch", "harsh", "haste", "hasty", "hatch", "haunt", "haven",
-  "havoc", "heart", "heavy", "hedge", "hefty", "hello", "hence", "heron", "hinge", "hitch",
-  "hoard", "hobby", "hoist", "holly", "horse", "hotel", "house", "hover", "howdy", "human",
-  "ideal", "idiom", "idiot", "image", "imbue", "inbox", "incur", "index", "inept", "inert",
-  "infer", "ingot", "inlay", "inlet", "inner", "input", "inset", "irate", "irony", "issue",
-  "itchy", "ivory", "jaunt", "jelly", "jewel", "jiffy", "joint", "joist", "joker", "jolly",
-  "judge", "juice", "jumbo", "jumpy", "korea", "knack", "knife", "knock", "knoll", "krill",
-  "label", "labor", "laces", "laden", "ladle", "lager", "lance", "lanky", "lapel", "lapse",
-  "large", "larva", "latch", "later", "lathe", "laugh", "layer", "leach", "leafy", "leaky",
-  "learn", "lease", "leash", "least", "leave", "ledge", "leech", "legal", "lemon", "lemur",
-  "level", "lever", "libel", "light", "lithe", "liver", "livid", "llama", "loath", "lobby",
-  "local", "lodge", "logic", "loopy", "loose", "lorry", "loser", "louse", "loyal", "lucky",
-  "lunch", "lunar", "lurid", "luster", "lying", "lymph", "lynch", "lyric", "macro", "madly",
-  "mafia", "magic", "magma", "maize", "major", "maker", "mango", "maple", "march", "marry",
-  "marsh", "mason", "match", "maxim", "maybe", "mayor", "mealy", "means", "meaty", "medal",
-  "media", "medic", "melee", "melon", "mercy", "merge", "merit", "merry", "metal", "meter",
-  "metro", "micro", "midst", "might", "milky", "mimic", "mince", "miner", "minor", "minty",
-  "minus", "mirth", "miser", "missy", "mocha", "modal", "model", "modem", "moist", "molar",
-  "moldy", "money", "month", "moody", "moral", "moron", "morph", "mossy", "motel", "motif",
-  "motor", "motto", "mound", "mount", "mourn", "mouse", "mouth", "movie", "mower", "mucky",
-  "mucus", "muddy", "mulch", "mummy", "munch", "mural", "murky", "mushy", "music", "musky",
-  "musty", "muted", "mylar", "nadir", "naive", "nanny", "nasal", "nasty", "natal", "naval",
-  "navel", "needy", "neigh", "nerve", "never", "newly", "nicer", "niche", "niece", "night",
-  "ninja", "ninny", "ninth", "noble", "nobly", "noise", "noisy", "nomad", "north", "notch",
-  "novel", "nudge", "nurse", "nutty", "nylon", "nymph", "oaken", "obese", "occur", "ocean",
-  "octal", "octet", "odder", "oddly", "offal", "offer", "often", "olden", "olive", "omega",
-  "onion", "onset", "opera", "opine", "opium", "optic", "orbit", "order", "organ", "other",
-  "otter", "ought", "ounce", "outdo", "outer", "outgo", "ovary", "ovate", "overt", "ovine",
-  "ovoid", "owing", "owner", "oxide", "ozone", "paddy", "pagan", "paint", "paler", "pally",
-  "palmy", "palsy", "panel", "panic", "pansy", "papal", "paper", "parer", "parka", "parry",
-  "parse", "party", "pasta", "paste", "pasty", "patch", "patio", "patsy", "patty", "pause",
-  "payee", "payer", "peace", "peach", "pearl", "pecan", "pedal", "penal", "pence", "penne",
-  "penny", "perch", "peril", "perky", "petal", "petty", "phase", "phone", "phony", "photo",
-  "piano", "picky", "piece", "piety", "piggy", "pilot", "pinch", "pinky", "pinto", "piper",
-  "pique", "pitch", "pithy", "pivot", "pixel", "pixie", "pizza", "place", "plaid", "plain",
-  "plait", "plane", "plank", "plant", "plate", "plaza", "plead", "pleat", "plied", "plier",
-  "pluck", "plumb", "plume", "plump", "plunk", "plush", "pobox", "pocket", "poems", "point",
-  "polar", "polka", "polyp", "pooch", "poppy", "porch", "poser", "posit", "posse", "pouch",
-  "pound", "power", "prank", "prawn", "preen", "press", "price", "prick", "pride", "pried",
-  "prime", "primo", "print", "prior", "prism", "privy", "prize", "probe", "prone", "prong",
-  "proof", "prose", "proud", "prove", "prowl", "proxy", "prude", "prune", "psalm", "psych",
-  "puffy", "pulse", "punch", "pupil", "puppy", "puree", "purge", "purse", "pushy", "putty",
-  "pygmy", "quack", "quail", "quake", "qualm", "quark", "quart", "quash", "quasi", "queen",
-  "queer", "quell", "query", "quest", "queue", "quick", "quiet", "quill", "quilt", "quint",
-  "quirk", "quite", "quota", "quote", "rabid", "racer", "radar", "radio", "rainy", "raise",
-  "rally", "rambo", "ranch", "randy", "range", "rangy", "rapid", "ratio", "ratty", "raven",
-  "rayon", "razor", "reach", "react", "ready", "realm", "rearm", "rebel", "rebus", "rebut",
-  "recap", "recta", "recur", "recut", "reedy", "refer", "refit", "regal", "rehab", "reign",
-  "relax", "relay", "relic", "remit", "renal", "renew", "repay", "repel", "reply", "rerun",
-  "reset", "resin", "retch", "retro", "retry", "reuse", "revel", "revue", "rhino", "rhyme",
-  "rider", "ridge", "rifle", "right", "rigid", "rigor", "rinse", "ripen", "riper", "risen",
-  "riser", "risky", "rival", "river", "rivet", "roach", "roast", "robin", "robot", "rocky",
-  "rodeo", "roger", "rogue", "roomy", "roost", "roster", "rotor", "rouge", "rough", "round",
-  "rouse", "route", "rover", "rowdy", "rower", "royal", "ruddy", "ruder", "rugby", "ruler",
-  "rumba", "rumor", "rupee", "rural", "rusty", "sadly", "safer", "saint", "salad", "sales",
-  "sally", "salon", "salsa", "salty", "salve", "salvo", "sandy", "sappy", "sassy", "satin",
-  "satyr", "sauce", "saucy", "sauna", "savoy", "savvy", "scald", "scale", "scalp", "scaly",
-  "scamp", "scant", "scare", "scarf", "scary", "scene", "scent", "scion", "scoff", "scold",
-  "scone", "scoop", "scope", "score", "scorn", "scour", "scout", "scowl", "scram", "scrap",
-  "scree", "screw", "scrub", "scrum", "scuba", "sedan", "seder", "sedge", "seedy", "segue",
-  "seize", "semen", "sense", "sepia", "serif", "serum", "serve", "setup", "seven", "sever",
-  "sewage", "sewer", "shack", "shade", "shady", "shaft", "shake", "shaky", "shale", "shall",
-  "shalt", "shame", "shank", "shape", "shard", "share", "shark", "sharp", "shave", "shawl",
-  "sheaf", "shear", "sheen", "sheep", "sheer", "sheet", "sheik", "shelf", "shell", "shine",
-  "shiny", "shirk", "shirt", "shoal", "shock", "shone", "shook", "shoot", "shore", "shorn",
-  "short", "shout", "shove", "shown", "showy", "shred", "shrew", "shrub", "shrug", "shuck",
-  "shunt", "shush", "shyly", "sidle", "siege", "sieve", "sight", "sigma", "silky", "silly",
-  "since", "sinew", "singe", "siren", "sissy", "sixth", "sixty", "skate", "skier", "skiff",
-  "skill", "skimp", "skirt", "skulk", "skull", "skunk", "slack", "slain", "slang", "slant",
-  "slash", "slate", "slave", "sleek", "sleep", "sleet", "slept", "slice", "slick", "slide",
-  "slime", "slimy", "sling", "slink", "sloop", "slope", "slosh", "sloth", "slump", "slung",
-  "slunk", "slurp", "slush", "slyly", "smack", "small", "smart", "smash", "smear", "smell",
-  "smile", "smirk", "smite", "smith", "smock", "smoke", "smoky", "smote", "snack", "snail",
-  "snake", "snaky", "snare", "snarl", "sneak", "sneer", "snide", "sniff", "snipe", "snoop",
-  "snore", "snort", "snout", "snowy", "snuck", "snuff", "soapy", "sober", "softy", "soggy",
-  "solar", "solid", "solve", "sonar", "sonic", "sorry", "sound", "south", "space", "spade",
-  "spare", "spark", "spasm", "spawn", "speak", "spear", "speck", "speed", "spell", "spelt",
-  "spend", "spent", "sperm", "spice", "spicy", "spied", "spiel", "spike", "spiky", "spill",
-  "spine", "spiny", "spire", "spite", "splat", "split", "spoil", "spoke", "spoof", "spook",
-  "spool", "spoon", "spore", "sport", "spout", "spray", "spree", "sprig", "spunk", "spurn",
-  "spurt", "squad", "squat", "squib", "stack", "staff", "stage", "staid", "stain", "stair",
-  "stake", "stale", "stalk", "stall", "stamp", "stand", "stank", "stare", "stark", "start",
-  "stash", "state", "stave", "stead", "steak", "steal", "steam", "steed", "steel", "steep",
-  "steer", "stein", "stern", "stick", "stiff", "still", "stilt", "sting", "stink", "stint",
-  "stock", "stoic", "stoke", "stole", "stomp", "stone", "stony", "stood", "stool", "stoop",
-  "store", "stork", "storm", "story", "stout", "stove", "strap", "straw", "stray", "strip",
-  "strut", "stuck", "study", "stuff", "stump", "stung", "stunk", "stunt", "style", "suave",
-  "sugar", "suing", "suite", "sulky", "sully", "sumac", "sunny", "super", "surge", "surly",
-  "sushi", "swami", "swamp", "swank", "swarm", "swash", "swath", "swear", "sweat", "sweep",
-  "sweet", "swell", "swept", "swift", "swill", "swine", "swing", "swirl", "swish", "swoon",
-  "swoop", "sword", "swore", "sworn", "swung", "synod", "syrup", "tabby", "table", "taboo",
-  "tacit", "tacky", "taffy", "taint", "taken", "taker", "tally", "talon", "tamer", "tango",
-  "tangy", "taper", "tapir", "tardy", "tarot", "taste", "tasty", "tatty", "taunt", "tawny",
-  "teach", "teary", "tease", "teddy", "teeth", "tempi", "tempo", "tempt", "tenet", "tenor",
-  "tense", "tenth", "tepee", "tepid", "terra", "terry", "terse", "testy", "texas", "thank",
-  "theft", "their", "theme", "there", "these", "theta", "thick", "thief", "thigh", "thing",
-  "think", "third", "thong", "thorn", "those", "three", "threw", "throb", "throw", "thumb",
-  "thump", "thyme", "tiara", "tibia", "tidal", "tiger", "tight", "tilde", "timer", "timid",
-  "tipsy", "titan", "tithe", "title", "toast", "today", "toddy", "token", "tonal", "tonga",
-  "tonic", "tooth", "topaz", "topic", "torch", "torso", "torus", "total", "totem", "touch",
-  "tough", "towel", "tower", "toxic", "toxin", "trace", "track", "tract", "trade", "trail",
-  "train", "trait", "tramp", "trash", "trawl", "tread", "treat", "trend", "triad", "trial",
-  "tribe", "trice", "trick", "tried", "tripe", "trite", "troll", "troop", "trope", "trout",
-  "trove", "truce", "truck", "truly", "trump", "trunk", "truss", "trust", "truth", "tryst",
-  "tubal", "tuber", "tulip", "tulle", "tumor", "tunic", "turbo", "tutor", "twang", "tweak",
-  "tweed", "tweet", "twice", "twine", "twirl", "twist", "twixt", "tying", "udder", "ulcer",
-  "ultra", "umbra", "uncle", "uncut", "under", "undid", "undue", "unfed", "unfit", "unify",
-  "union", "unite", "unity", "unlit", "unmet", "unset", "untie", "until", "unwed", "unzip",
-  "upper", "upset", "urban", "urine", "usage", "usher", "using", "usual", "usurp", "utile",
-  "utter", "vague", "valet", "valid", "valor", "value", "valve", "vapid", "vapor", "vault",
-  "vaunt", "vegan", "venom", "venue", "verge", "verse", "verso", "verve", "vicar", "video",
-  "vigil", "vigor", "villa", "vinyl", "viola", "viper", "viral", "virus", "visit", "visor",
-  "vista", "vital", "vivid", "vixen", "vocal", "vodka", "vogue", "voice", "voila", "vomit",
-  "voter", "vouch", "vowel", "vying", "wacky", "wafer", "wager", "wagon", "waist", "waive",
-  "waltz", "waste", "watch", "water", "waver", "waxen", "weary", "weave", "wedge", "weedy",
-  "weigh", "weird", "welch", "welsh", "werewolf", "whack", "whale", "wharf", "wheat", "wheel",
-  "whelp", "where", "which", "whiff", "while", "whine", "whiny", "whirl", "whisk", "white",
-  "whole", "whoop", "whose", "widen", "wider", "widow", "width", "wield", "wight", "willy",
-  "wimpy", "wince", "winch", "windy", "wiser", "wispy", "witch", "witty", "woken", "woman",
-  "women", "woody", "wooer", "wooly", "woozy", "wordy", "world", "worry", "worse", "worst",
-  "worth", "would", "wound", "woven", "wrack", "wrath", "wreak", "wreck", "wrest", "wring",
-  "wrist", "write", "wrong", "wrote", "wrung", "wryly", "yacht", "yearn", "yeast", "yield",
-  "young", "youth", "zebra", "zesty", "zonal"
-];
+// Simplified validation for 5-letter words
+import { apiRequest } from './queryClient';
 
 // Function to check if a word is valid for guessing
+export async function validateWord(word: string): Promise<{ valid: boolean, message?: string }> {
+  try {
+    // First, basic client-side validation
+    if (word.length !== 5) {
+      return { valid: false, message: "Word must be 5 letters" };
+    }
+    
+    if (!/^[a-zA-Z]+$/.test(word)) {
+      return { valid: false, message: "Word must contain only letters" };
+    }
+    
+    // Send to server for validation
+    const response = await fetch(`/api/validate-word/${word.toLowerCase()}`);
+    if (!response.ok) {
+      throw new Error('Failed to validate word');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error validating word:', error);
+    return { valid: true }; // If the server is down, allow the word to be valid
+  }
+}
+
+// Synchronous check for client-side validation only (used for immediate feedback)
 export function isValidWord(word: string): boolean {
-  return validWords.includes(word.toLowerCase());
+  // Basic client-side checks only
+  return word.length === 5 && /^[a-zA-Z]+$/.test(word);
 }
