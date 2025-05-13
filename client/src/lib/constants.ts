@@ -79,5 +79,6 @@ export const LOCAL_STORAGE_KEYS = {
   GAME_STATE: 'wordleRanked.gameState',
   GAME_STATS: 'wordleRanked.gameStats',
   THEME: 'wordleRanked.theme',
-  USER: 'wordleRanked.user'
+  USER: 'wordleRanked.user',
+  AUTH_TOKEN: 'auth_token'
 };
