@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { LOCAL_STORAGE_KEYS } from "./constants";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -40,7 +41,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     // Get token from localStorage if available
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
     
     const headers: Record<string, string> = {
       ...(token ? { "Authorization": `Bearer ${token}` } : {})

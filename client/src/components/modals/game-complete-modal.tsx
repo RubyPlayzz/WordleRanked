@@ -25,8 +25,9 @@ export function GameCompleteModal({
   attempts,
   word,
   pointsEarned,
-  rank
-}: GameCompleteModalProps) {
+  rank,
+  onPlayAgain
+}: GameCompleteModalProps & { onPlayAgain?: () => void }) {
   const [timeUntilTomorrow, setTimeUntilTomorrow] = useState<number>(0);
   
   // Calculate and update time until tomorrow

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Game from "@/pages/game";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import Welcome from "@/pages/welcome";
 import Leaderboard from "@/pages/leaderboard";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
@@ -20,7 +21,7 @@ function AuthRoute({ component: Component }: { component: React.ComponentType })
     if (match) {
       const userData = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
       if (!userData) {
-        navigate("/login");
+        navigate("/welcome");
       }
     }
   }, [match, navigate]);
@@ -32,6 +33,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={() => <AuthRoute component={Game} />} />
+      <Route path="/welcome" component={Welcome} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/leaderboard" component={Leaderboard} />

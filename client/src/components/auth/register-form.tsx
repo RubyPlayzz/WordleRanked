@@ -76,8 +76,12 @@ export function RegisterForm() {
       
       const user = await response.json();
       
-      // Save user data to localStorage
+      // Generate a temporary token to allow immediate play
+      const tempToken = `temp_${Math.random().toString(36).substring(2, 15)}`;
+      
+      // Save user data and token to localStorage
       localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN, tempToken);
       
       // Create initial game stats
       try {
