@@ -162,6 +162,18 @@ export function GameCompleteModal({
           </p>
           
           <div className="flex flex-col space-y-2">
+            {gameWon && onPlayAgain && (
+              <Button 
+                onClick={onPlayAgain}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold flex items-center justify-center"
+              >
+                <span className="mr-2">Play Again</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </Button>
+            )}
+            
             <Button 
               variant="outline"
               onClick={onShareResults}
@@ -169,6 +181,7 @@ export function GameCompleteModal({
             >
               Share Results
             </Button>
+            
             <Button 
               onClick={onViewStats}
               className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
