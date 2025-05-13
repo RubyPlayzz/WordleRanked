@@ -103,7 +103,7 @@ export const DEFAULT_AVATARS = [
 ];
 
 // Rank tiers
-export const RANK_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'] as const;
+export const RANK_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'] as const;
 export const rankTierSchema = z.enum(RANK_TIERS);
 
 // Type exports
@@ -132,7 +132,8 @@ export function calculateRankTier(score: number): RankTier {
   if (score < 1000) return 'Silver';
   if (score < 1500) return 'Gold';
   if (score < 2000) return 'Platinum';
-  return 'Diamond';
+  if (score < 2500) return 'Diamond';
+  return 'Champion';
 }
 
 // Helper function to calculate ELO rating change

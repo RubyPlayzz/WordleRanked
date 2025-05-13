@@ -51,7 +51,8 @@ export const RANK_COLORS = {
   'Silver': 'from-gray-400 to-gray-600',
   'Gold': 'from-yellow-400 to-yellow-600',
   'Platinum': 'from-indigo-400 to-indigo-600',
-  'Diamond': 'from-blue-500 to-purple-500'
+  'Diamond': 'from-blue-500 to-purple-500',
+  'Champion': 'from-emerald-400 to-emerald-700'
 };
 
 export const RANK_THRESHOLDS = {
@@ -59,7 +60,8 @@ export const RANK_THRESHOLDS = {
   'Silver': 500,
   'Gold': 1000,
   'Platinum': 1500,
-  'Diamond': 2000
+  'Diamond': 2000,
+  'Champion': 2500
 };
 
 export const WIN_MESSAGES = [
