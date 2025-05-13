@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 211 100% 99%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --ring: 20 14.3% 4.1%;
+    --radius: 0.5rem;
+    
+    /* Wordle specific colors */
+    --correct: 115 29% 43%;
+    --present: 43 59% 55%;
+    --absent: 1 2% 47%;
+    --keyboard-light: 0 0% 85%;
+    --keyboard-dark: 0 0% 51%;
+    --light-text: 0 0% 85%;
+    --dark-text: 0 0% 10%;
+    --light-tile: 0 0% 100%;
+    --dark-tile: 0 0% 20%;
+    
+    /* Chart colors */
+    --chart-1: 215 100% 50%;
+    --chart-2: 280 100% 50%;
+    --chart-3: 350 100% 50%;
+    --chart-4: 40 100% 50%;
+    --chart-5: 120 100% 50%;
+  }
+  
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 211 100% 99%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 240 4.9% 83.9%;
+    
+    /* Wordle specific colors for dark mode */
+    --correct: 115 30% 33%;
+    --present: 44 61% 38%;
+    --absent: 240 2% 24%;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+    touch-action: manipulation;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .game-board .tile {
+    @apply w-full inline-flex justify-center items-center text-2xl font-bold uppercase select-none transition-all duration-100 ease-in-out;
+  }
+  
+  .keyboard-key {
+    @apply font-bold border-0 p-0 m-0 h-[58px] rounded cursor-pointer select-none flex justify-center items-center uppercase;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.3);
+  }
+  
+  .rank-badge {
+    @apply relative inline-flex items-center justify-center px-3 py-1.5 rounded-2xl font-bold shadow-lg;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .bounce {
+    animation: bounce 0.3s ease-in-out;
+  }
+  
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  
+  .bg-correct {
+    background-color: hsl(var(--correct));
+  }
+  
+  .bg-present {
+    background-color: hsl(var(--present));
+  }
+  
+  .bg-absent {
+    background-color: hsl(var(--absent));
+  }
+  
+  .border-correct {
+    border-color: hsl(var(--correct));
+  }
+  
+  .border-present {
+    border-color: hsl(var(--present));
+  }
+  
+  .border-absent {
+    border-color: hsl(var(--absent));
+  }
+  
+  .bg-keyboardLight {
+    background-color: hsl(var(--keyboard-light));
+  }
+  
+  .bg-keyboardDark {
+    background-color: hsl(var(--keyboard-dark));
+  }
+}
