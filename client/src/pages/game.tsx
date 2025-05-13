@@ -6,6 +6,7 @@ import { HelpModal } from "@/components/modals/help-modal";
 import { StatisticsModal } from "@/components/modals/statistics-modal";
 import { GameCompleteModal } from "@/components/modals/game-complete-modal";
 import { ResultToast } from "@/components/result-toast";
+import { ChallengeButton } from "@/components/game/challenge-button";
 import { useTheme } from "@/providers/theme-provider";
 import { useGame } from "@/hooks/use-game";
 import { useToast } from "@/hooks/use-toast";
@@ -297,10 +298,17 @@ export default function Game() {
         onBackspace={handleBackspace}
       />
       
-      {/* Next Word Timer (when game is completed) */}
+      {/* Next Word Timer and Challenge Button (when game is completed) */}
       {gameComplete && (
-        <div className="text-center py-2">
-          <p className="text-sm">Next word in {timeUntilNextWord}</p>
+        <div className="py-2 space-y-2">
+          <p className="text-sm text-center">Next word in {timeUntilNextWord}</p>
+          
+          <div className="flex justify-center">
+            <ChallengeButton 
+              currentWord={gameState.correctWord} 
+              className="text-sm"
+            />
+          </div>
         </div>
       )}
       

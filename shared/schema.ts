@@ -146,15 +146,33 @@ export function calculateEloRatingChange(
   const expectedScore = 1 / (1 + Math.pow(10, (1400 - playerRating) / 400));
   
   let actualScore = 0;
+  let bonusMultiplier = 1.0;
+  
   if (outcome === 'win') {
     actualScore = 1;
+    
     // Bonus for quick wins (fewer attempts)
     if (attempts) {
-      // Multiplier that decreases as attempts increase: 1.5 for 1 attempt, down to 1.0 for 6 attempts
-      const multiplier = 1.5 - (attempts - 1) * 0.1;
-      return Math.round(K * (actualScore - expectedScore) * multiplier);
+      if (attempts === 1) {
+        bonusMultiplier = 2.5; // Extremely impressive (guessed in 1 try)
+      } else if (attempts === 2) {
+        bonusMultiplier = 2.0; // Very impressive (guessed in 2 tries)
+      } else if (attempts === 3) {
+        bonusMultiplier = 1.7; // Impressive (guessed in 3 tries)
+      } else if (attempts === 4) {
+        bonusMultiplier = 1.3; // Good (guessed in 4 tries)
+      } else if (attempts === 5) {
+        bonusMultiplier = 1.1; // Decent (guessed in 5 tries)
+      }
+    }
+    
+    // Bonus multiplier for higher-ranked players to help them progress
+    if (playerRating >= 2000 && playerRating < 2400) {
+      bonusMultiplier += 0.2; // Additional bonus for Diamond rank players
+    } else if (playerRating >= 2400) {
+      bonusMultiplier += 0.3; // Additional bonus for approaching Champion rank
     }
   }
   
-  return Math.round(K * (actualScore - expectedScore));
+  return Math.round(K * (actualScore - expectedScore) * bonusMultiplier);
 }
