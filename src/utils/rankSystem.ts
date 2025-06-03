@@ -9,6 +9,14 @@ export interface RankInfo {
 
 export const getRankInfo = (rank: string): RankInfo => {
   switch (rank) {
+    case 'Unranked':
+      return {
+        icon: '❓',
+        gradient: 'bg-gradient-to-br from-gray-500 to-gray-700',
+        description: 'Complete placement matches',
+        nextRank: 'Ranked',
+        nextThreshold: 10
+      };
     case 'Bronze':
       return {
         icon: '🟫',

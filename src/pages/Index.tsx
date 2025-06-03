@@ -52,6 +52,8 @@ const Index = () => {
           <RankDisplay 
             rating={playerStats.rating}
             rank={getCurrentRank()}
+            placementMatches={playerStats.placementMatches}
+            isPlacementPhase={playerStats.isPlacementPhase}
           />
         </div>
 
@@ -81,6 +83,8 @@ const Index = () => {
           newRating={playerStats.rating}
           newRank={getCurrentRank()}
           onNewGame={handleNewGame}
+          isPlacementPhase={playerStats.isPlacementPhase}
+          placementMatches={playerStats.placementMatches}
         />
       </div>
     </div>

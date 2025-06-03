@@ -26,7 +26,7 @@ export const GameBoard = ({
   });
 
   return (
-    <div className="grid gap-2 mb-6">
+    <div className="grid gap-1 mb-6">
       {rows.map((word, index) => (
         <WordRow
           key={index}

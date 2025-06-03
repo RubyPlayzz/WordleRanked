@@ -13,6 +13,8 @@ interface GameOverModalProps {
   newRating: number;
   newRank: string;
   onNewGame: () => void;
+  isPlacementPhase?: boolean;
+  placementMatches?: number;
 }
 
 export const GameOverModal = ({
@@ -23,17 +25,20 @@ export const GameOverModal = ({
   ratingChange,
   newRating,
   newRank,
-  onNewGame
+  onNewGame,
+  isPlacementPhase = false,
+  placementMatches = 0
 }: GameOverModalProps) => {
   const rankInfo = getRankInfo(newRank);
   const won = gameStatus === 'won';
+  const justFinishedPlacements = placementMatches === 10 && isPlacementPhase === false;
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl">
-            {won ? '🎉 Victory!' : '💔 Game Over'}
+            {justFinishedPlacements ? '🎯 Ranked!' : won ? '🎉 Victory!' : '💔 Game Over'}
           </DialogTitle>
         </DialogHeader>
         
@@ -46,23 +51,56 @@ export const GameOverModal = ({
             )}
           </div>
 
-          <div className="bg-slate-700/50 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-300">Rating Change:</span>
-              <div className="flex items-center gap-2">
-                {ratingChange > 0 ? (
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-red-400" />
-                )}
-                <span className={ratingChange > 0 ? 'text-green-400' : 'text-red-400'}>
-                  {ratingChange > 0 ? '+' : ''}{ratingChange}
-                </span>
-              </div>
+          {justFinishedPlacements && (
+            <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-xl p-4 border border-purple-500/30">
+              <p className="text-center text-purple-300 text-sm font-semibold mb-2">
+                🎊 Placement Matches Complete! 🎊
+              </p>
+              <p className="text-center text-slate-300 text-xs">
+                You've been placed in {newRank}!
+              </p>
             </div>
+          )}
+
+          <div className="bg-slate-700/50 rounded-xl p-4 space-y-3">
+            {isPlacementPhase ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Placement Match:</span>
+                  <span className="text-blue-400">{placementMatches}/10</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Rating Change:</span>
+                  <div className="flex items-center gap-2">
+                    {ratingChange > 0 ? (
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-400" />
+                    )}
+                    <span className={ratingChange > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {ratingChange > 0 ? '+' : ''}{ratingChange}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Rating Change:</span>
+                <div className="flex items-center gap-2">
+                  {ratingChange > 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-400" />
+                  )}
+                  <span className={ratingChange > 0 ? 'text-green-400' : 'text-red-400'}>
+                    {ratingChange > 0 ? '+' : ''}{ratingChange}
+                  </span>
+                </div>
+              </div>
+            )}
             
             <div className="flex items-center justify-between">
-              <span className="text-slate-300">New Rating:</span>
+              <span className="text-slate-300">{isPlacementPhase ? 'Current Rating:' : 'New Rating:'}</span>
               <span className="font-semibold">{newRating}</span>
             </div>
             
@@ -82,7 +120,7 @@ export const GameOverModal = ({
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             <Trophy className="w-4 h-4 mr-2" />
-            New Game
+            {isPlacementPhase ? `Next Match (${placementMatches + 1}/10)` : 'New Game'}
           </Button>
         </div>
       </DialogContent>
