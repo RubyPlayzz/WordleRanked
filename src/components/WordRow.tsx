@@ -20,7 +20,7 @@ export const WordRow = ({ word, targetWord, isSubmitted, isCurrentRow }: WordRow
   };
 
   return (
-    <div className="grid grid-cols-5 gap-px">
+    <div className="grid grid-cols-5 gap-0">
       {letters.map((letter, index) => (
         <LetterTile
           key={index}

@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { calculateEloChange, getRankFromRating } from '@/utils/eloSystem';
 
 interface PlayerStats {
@@ -22,11 +22,34 @@ const DEFAULT_STATS: PlayerStats = {
   isPlacementPhase: true
 };
 
+const STORAGE_KEY = 'wordle-ranked-stats';
+
 export const usePlayerStats = () => {
   const [playerStats, setPlayerStats] = useState<PlayerStats>(() => {
-    const saved = localStorage.getItem('wordle-ranked-stats');
-    return saved ? JSON.parse(saved) : DEFAULT_STATS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all required fields exist
+        return {
+          ...DEFAULT_STATS,
+          ...parsed
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load player stats from localStorage:', error);
+    }
+    return DEFAULT_STATS;
   });
+
+  // Save to localStorage whenever stats change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats));
+    } catch (error) {
+      console.warn('Failed to save player stats to localStorage:', error);
+    }
+  }, [playerStats]);
 
   const updateStats = useCallback((won: boolean, guessCount: number): number => {
     let ratingChange = 0;
@@ -55,8 +78,6 @@ export const usePlayerStats = () => {
     };
 
     setPlayerStats(newStats);
-    localStorage.setItem('wordle-ranked-stats', JSON.stringify(newStats));
-    
     return ratingChange;
   }, [playerStats]);
 

@@ -26,16 +26,18 @@ export const GameBoard = ({
   });
 
   return (
-    <div className="grid gap-0.5 mb-6">
-      {rows.map((word, index) => (
-        <WordRow
-          key={index}
-          word={word}
-          targetWord={targetWord}
-          isSubmitted={index < guesses.length}
-          isCurrentRow={index === currentRow && gameStatus === 'playing'}
-        />
-      ))}
+    <div className="flex justify-center mb-6">
+      <div className="grid gap-0">
+        {rows.map((word, index) => (
+          <WordRow
+            key={index}
+            word={word}
+            targetWord={targetWord}
+            isSubmitted={index < guesses.length}
+            isCurrentRow={index === currentRow && gameStatus === 'playing'}
+          />
+        ))}
+      </div>
     </div>
   );
 };

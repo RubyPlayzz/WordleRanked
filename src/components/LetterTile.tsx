@@ -27,10 +27,10 @@ export const LetterTile = ({ letter, status, isCurrentRow, delay }: LetterTilePr
   return (
     <div
       className={cn(
-        'w-14 h-14 border-2 rounded-lg flex items-center justify-center font-bold text-xl',
+        'w-14 h-14 border border-r-0 last:border-r flex items-center justify-center font-bold text-xl',
         'transition-all duration-300 transform',
         getStatusStyles(),
-        isCurrentRow && letter && 'scale-105 border-slate-400',
+        isCurrentRow && letter && 'scale-105',
         status !== 'empty' && 'animate-scale-in'
       )}
       style={{ 
