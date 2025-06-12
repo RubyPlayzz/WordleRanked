@@ -1,73 +1,105 @@
-# Welcome to your Lovable project
 
-## Project info
+# Wordle Ranked - Competitive Word Game
 
-**URL**: https://lovable.dev/projects/7552ab60-a11e-4305-8942-6a2981da72b6
+🎯 Take Wordle to the next level! Compete with Elo rankings, climb from Bronze to Arch-Champion, and prove your word skills in this competitive twist on the classic game.
 
-## How can I edit this code?
+## 🚀 Live Demo
 
-There are several ways of editing your application.
+Visit the live demo at: [your-username.github.io/your-repo-name](https://your-username.github.io/your-repo-name)
 
-**Use Lovable**
+## 🛠️ Local Development
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7552ab60-a11e-4305-8942-6a2981da72b6) and start prompting.
+### Prerequisites
+- Node.js (version 18 or higher)
+- npm or yarn
 
-Changes made via Lovable will be committed automatically to this repo.
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
 
-**Use your preferred IDE**
+# Install dependencies
+npm install
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📦 Deployment to GitHub Pages
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Automatic Deployment (Recommended)
+This project includes a GitHub Actions workflow that automatically builds and deploys to GitHub Pages when you push to the main branch.
 
-**Use GitHub Codespaces**
+1. Fork or clone this repository
+2. Go to your GitHub repository settings
+3. Navigate to Pages → Source → GitHub Actions
+4. Push to the main branch and the site will automatically deploy!
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Manual Deployment
+```bash
+# Build the project
+npm run build
 
-## What technologies are used for this project?
+# The built files will be in the 'dist' folder
+# Upload the contents of 'dist' to your GitHub Pages branch
+```
 
-This project is built with:
+### Important: Update the base URL
+Before deploying, update the `base` property in `vite.config.ts`:
+```typescript
+base: process.env.NODE_ENV === 'production' ? '/your-actual-repo-name/' : '/',
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🎮 Features
 
-## How can I deploy this project?
+- **Competitive Ranking System**: Climb from Bronze to Arch-Champion
+- **Elo Rating System**: Dynamic rating based on performance  
+- **Placement Matches**: 10 initial games to determine your starting rank
+- **Persistent Progress**: Your rank and stats are saved locally
+- **Enhanced Word List**: Accepts a wide variety of English dictionary words
+- **Responsive Design**: Works great on desktop and mobile
 
-Simply open [Lovable](https://lovable.dev/projects/7552ab60-a11e-4305-8942-6a2981da72b6) and click on Share -> Publish.
+## 🏆 Ranking System
 
-## Can I connect a custom domain to my Lovable project?
+- **Unranked**: Placement matches (0-9 games)
+- **Bronze**: 0-599 rating
+- **Silver**: 600-999 rating  
+- **Gold**: 1000-1399 rating
+- **Platinum**: 1400-1799 rating
+- **Diamond**: 1800-2199 rating
+- **Master**: 2200-2599 rating
+- **Grandmaster**: 2600-2999 rating
+- **Arch-Champion**: 3000+ rating
 
-Yes, you can!
+## 🎯 How to Play
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Guess the 5-letter word in 6 tries or less
+2. Green tiles indicate correct letters in the right position
+3. Yellow tiles indicate correct letters in the wrong position
+4. Gray tiles indicate letters not in the word
+5. Win games to increase your rating and climb the ranks!
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🔧 Technologies Used
+
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **Tailwind CSS** for styling
+- **Shadcn/UI** for UI components
+- **Lucide React** for icons
+- **React Query** for state management
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs
+- Suggest new features  
+- Submit pull requests
+
+## ⭐ Show Your Support
+
+If you enjoy this game, please give it a star on GitHub!
